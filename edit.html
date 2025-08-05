@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>質問編集フォーム</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .form-container {
+            padding: 30px 20px;
+        }
+
+        .edit-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #4facfe;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #3a8bfe;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .question {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #f0f0f0;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .question:hover {
+            border-color: #4facfe;
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.1);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .option-inputs {
+            margin-top: 10px;
+        }
+
+        .option-input {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 8px;
+            align-items: center;
+        }
+
+        .option-input input {
+            flex: 1;
+        }
+
+        .remove-option {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .add-option {
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 15px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        .preview-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 1px solid #dee2e6;
+        }
+
+        .preview-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .option {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            background: #fafafa;
+        }
+
+        .option input[type="radio"] {
+            margin-right: 12px;
+            transform: scale(1.2);
+        }
+
+        .option label {
+            cursor: pointer;
+            font-size: 14px;
+            color: #555;
+            flex: 1;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                margin: 10px;
+                border-radius: 10px;
+            }
+
+            .header {
+                padding: 20px 15px;
+            }
+
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .form-container {
+                padding: 20px 15px;
+            }
+
+            .question {
+                padding: 15px;
+            }
+
+            .edit-controls {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>質問編集フォーム</h1>
+            <p>質問と選択肢を編集してください</p>
+        </div>
+
+        <div class="form-container">
+            <div class="edit-controls">
+                <button class="btn btn-success" onclick="saveChanges()">変更を保存</button>
+                <button class="btn btn-secondary" onclick="resetToDefault()">デフォルトに戻す</button>
+                <button class="btn btn-primary" onclick="previewQuestion()">プレビュー</button>
+            </div>
+
+            <div id="edit-container">
+                <!-- 編集フォームがここに動的に生成されます -->
+            </div>
+
+            <div class="preview-section" id="preview-section" style="display: none;">
+                <h3>プレビュー</h3>
+                <div id="preview-container">
+                    <!-- プレビューがここに表示されます -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 質問データ（1問のみ）
+        let questionsData = [
+            {
+                id: 1,
+                question: "あなたの好きな色は何ですか？",
+                options: ["赤", "青", "緑", "黄色", "紫"]
+            }
+        ];
+
+        // 編集フォームを表示する関数
+        function renderEditForm() {
+            const container = document.getElementById('edit-container');
+            container.innerHTML = '';
+
+            questionsData.forEach((q, index) => {
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'question';
+                questionDiv.innerHTML = `
+                    <div class="form-group">
+                        <label>質問文:</label>
+                        <textarea id="question${q.id}" placeholder="質問文を入力してください">${q.question}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>選択肢:</label>
+                        <div class="option-inputs" id="options${q.id}">
+                            ${q.options.map((option, optIndex) => `
+                                <div class="option-input">
+                                    <input type="text" value="${option}" placeholder="選択肢 ${optIndex + 1}" 
+                                           onchange="updateOption(${q.id}, ${optIndex}, this.value)">
+                                    <button class="remove-option" onclick="removeOption(${q.id}, ${optIndex})">削除</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <button class="add-option" onclick="addOption(${q.id})">選択肢を追加</button>
+                    </div>
+                `;
+                container.appendChild(questionDiv);
+            });
+        }
+
+        // 選択肢を更新
+        function updateOption(questionId, optionIndex, value) {
+            questionsData[questionId - 1].options[optionIndex] = value;
+        }
+
+        // 選択肢を削除
+        function removeOption(questionId, optionIndex) {
+            questionsData[questionId - 1].options.splice(optionIndex, 1);
+            renderEditForm();
+        }
+
+        // 選択肢を追加
+        function addOption(questionId) {
+            questionsData[questionId - 1].options.push("新しい選択肢");
+            renderEditForm();
+        }
+
+        // 変更を保存
+        function saveChanges() {
+            // 質問文を更新
+            questionsData.forEach(q => {
+                const questionText = document.getElementById(`question${q.id}`).value;
+                q.question = questionText;
+            });
+
+            // ローカルストレージに保存
+            localStorage.setItem('questionData', JSON.stringify(questionsData));
+            
+            alert('変更が保存されました！回答用ページでも反映されます。');
+        }
+
+        // デフォルトに戻す
+        function resetToDefault() {
+            questionsData = [
+                {
+                    id: 1,
+                    question: "あなたの好きな色は何ですか？",
+                    options: ["赤", "青", "緑", "黄色", "紫"]
+                }
+            ];
+
+            // ローカルストレージから削除
+            localStorage.removeItem('questionData');
+            
+            renderEditForm();
+            alert('デフォルトの質問に戻しました！');
+        }
+
+        // プレビュー表示
+        function previewQuestion() {
+            const previewSection = document.getElementById('preview-section');
+            const previewContainer = document.getElementById('preview-container');
+            
+            // 現在の編集内容を一時的に反映
+            questionsData.forEach(q => {
+                const questionText = document.getElementById(`question${q.id}`).value;
+                q.question = questionText;
+            });
+
+            previewContainer.innerHTML = '';
+            questionsData.forEach((q, index) => {
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'question';
+                questionDiv.innerHTML = `
+                    <h3>${q.question}</h3>
+                    <div class="options">
+                        ${q.options.map((option, optIndex) => `
+                            <div class="option">
+                                <input type="radio" name="preview" id="preview${optIndex}" value="${optIndex}">
+                                <label for="preview${optIndex}">${option}</label>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                previewContainer.appendChild(questionDiv);
+            });
+
+            previewSection.style.display = 'block';
+        }
+
+        // ローカルストレージからデータを読み込み
+        function loadSavedData() {
+            const savedData = localStorage.getItem('questionData');
+            if (savedData) {
+                questionsData = JSON.parse(savedData);
+            }
+        }
+
+        // 初期表示
+        loadSavedData();
+        renderEditForm();
+    </script>
+</body>
+</html> 

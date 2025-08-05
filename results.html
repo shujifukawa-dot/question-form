@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>回答結果</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .content {
+            padding: 30px 20px;
+        }
+
+        .stats-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 1px solid #dee2e6;
+        }
+
+        .stats-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .total-responses {
+            font-size: 24px;
+            font-weight: bold;
+            color: #28a745;
+            margin-bottom: 20px;
+        }
+
+        .question-display {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #28a745;
+        }
+
+        .question-display h4 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .option-result {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+        }
+
+        .option-text {
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .option-count {
+            font-weight: bold;
+            color: #28a745;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #20c997);
+            transition: width 0.3s ease;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6c757d;
+            font-size: 16px;
+        }
+
+        .no-results h3 {
+            margin-bottom: 10px;
+            color: #495057;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                margin: 10px;
+                border-radius: 10px;
+            }
+
+            .header {
+                padding: 20px 15px;
+            }
+
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .content {
+                padding: 20px 15px;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>回答結果</h1>
+            <p>質問への回答状況を確認できます</p>
+        </div>
+
+        <div class="content">
+            <div class="controls">
+                <button class="btn btn-primary" onclick="refreshResults()">結果を更新</button>
+                <button class="btn btn-danger" onclick="clearResults()">結果をクリア</button>
+                <button class="btn btn-secondary" onclick="exportResults()">結果をエクスポート</button>
+            </div>
+
+            <div id="results-container">
+                <!-- 結果がここに表示されます -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 結果を表示する関数
+        function displayResults() {
+            const container = document.getElementById('results-container');
+            const results = getResults();
+            const questionData = getQuestionData();
+
+            if (!results || results.length === 0) {
+                container.innerHTML = `
+                    <div class="no-results">
+                        <h3>まだ回答がありません</h3>
+                        <p>回答者が質問に回答すると、ここに結果が表示されます。</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // 回答数を集計
+            const totalResponses = results.length;
+            const optionCounts = {};
+            
+            // 選択肢の初期化
+            if (questionData && questionData[0]) {
+                questionData[0].options.forEach(option => {
+                    optionCounts[option] = 0;
+                });
+            }
+
+            // 回答を集計
+            results.forEach(result => {
+                const selectedOption = result.selectedOption;
+                if (optionCounts.hasOwnProperty(selectedOption)) {
+                    optionCounts[selectedOption]++;
+                }
+            });
+
+            // 結果を表示
+            container.innerHTML = `
+                <div class="stats-section">
+                    <h3>回答統計</h3>
+                    <div class="total-responses">総回答数: ${totalResponses}件</div>
+                    
+                    ${questionData && questionData[0] ? `
+                        <div class="question-display">
+                            <h4>質問: ${questionData[0].question}</h4>
+                            ${Object.entries(optionCounts).map(([option, count]) => {
+                                const percentage = totalResponses > 0 ? Math.round((count / totalResponses) * 100) : 0;
+                                return `
+                                    <div class="option-result">
+                                        <div>
+                                            <div class="option-text">${option}</div>
+                                            <div class="progress-bar">
+                                                <div class="progress-fill" style="width: ${percentage}%"></div>
+                                            </div>
+                                        </div>
+                                        <div class="option-count">${count}票 (${percentage}%)</div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    ` : '<p>質問データが見つかりません</p>'}
+                </div>
+            `;
+        }
+
+        // ローカルストレージから結果を取得
+        function getResults() {
+            const results = localStorage.getItem('questionResults');
+            return results ? JSON.parse(results) : [];
+        }
+
+        // ローカルストレージから質問データを取得
+        function getQuestionData() {
+            const questionData = localStorage.getItem('questionData');
+            return questionData ? JSON.parse(questionData) : null;
+        }
+
+        // 結果を更新
+        function refreshResults() {
+            displayResults();
+        }
+
+        // 結果をクリア
+        function clearResults() {
+            if (confirm('すべての回答結果を削除しますか？この操作は取り消せません。')) {
+                localStorage.removeItem('questionResults');
+                displayResults();
+                alert('回答結果をクリアしました。');
+            }
+        }
+
+        // 結果をエクスポート
+        function exportResults() {
+            const results = getResults();
+            const questionData = getQuestionData();
+            
+            if (!results || results.length === 0) {
+                alert('エクスポートする結果がありません。');
+                return;
+            }
+
+            // CSVデータを作成
+            let csvContent = "data:text/csv;charset=utf-8,";
+            
+            if (questionData && questionData[0]) {
+                csvContent += `質問,${questionData[0].question}\n`;
+            }
+            csvContent += "回答者,選択肢,回答日時\n";
+            
+            results.forEach((result, index) => {
+                csvContent += `${index + 1},${result.selectedOption},${result.timestamp}\n`;
+            });
+
+            // ダウンロードリンクを作成
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `question_results_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // 初期表示
+        displayResults();
+    </script>
+</body>
+</html> 

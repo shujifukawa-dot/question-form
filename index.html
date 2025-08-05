@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>選択式質問フォーム</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .form-container {
+            padding: 30px 20px;
+        }
+
+        .question {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #f0f0f0;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .question:hover {
+            border-color: #4facfe;
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.1);
+        }
+
+        .question h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 16px;
+            line-height: 1.4;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .option {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #fafafa;
+        }
+
+        .option:hover {
+            border-color: #4facfe;
+            background: #f0f8ff;
+        }
+
+        .option input[type="radio"] {
+            margin-right: 12px;
+            transform: scale(1.2);
+        }
+
+        .option label {
+            cursor: pointer;
+            font-size: 14px;
+            color: #555;
+            flex: 1;
+        }
+
+        .option.selected {
+            border-color: #4facfe;
+            background: #e3f2fd;
+        }
+
+
+
+        .thank-you {
+            text-align: center;
+            padding: 40px 20px;
+            color: #28a745;
+        }
+
+        .thank-you h3 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .thank-you p {
+            font-size: 16px;
+            color: #6c757d;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                margin: 10px;
+                border-radius: 10px;
+            }
+
+            .header {
+                padding: 20px 15px;
+            }
+
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .form-container {
+                padding: 20px 15px;
+            }
+
+            .question {
+                padding: 15px;
+            }
+
+            .option {
+                padding: 10px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>選択式質問フォーム</h1>
+            <p>以下の質問にお答えください</p>
+        </div>
+
+        <div class="form-container">
+            <div id="questions-container">
+                <!-- 質問がここに動的に生成されます -->
+            </div>
+
+            <div id="thank-you" class="thank-you" style="display: none;">
+                <h3>ありがとうございました！</h3>
+                <p>ご回答いただき、ありがとうございます。</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 質問データ（1問のみ）
+        let questionsData = [
+            {
+                id: 1,
+                question: "あなたの好きな色は何ですか？",
+                options: ["赤", "青", "緑", "黄色", "紫"]
+            }
+        ];
+
+        // ローカルストレージからデータを読み込み
+        function loadSavedData() {
+            const savedData = localStorage.getItem('questionData');
+            if (savedData) {
+                questionsData = JSON.parse(savedData);
+            }
+        }
+
+        // 質問を表示する関数
+        function renderQuestions() {
+            const container = document.getElementById('questions-container');
+            container.innerHTML = '';
+
+            questionsData.forEach((q, index) => {
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'question';
+                questionDiv.innerHTML = `
+                    <h3>${q.question}</h3>
+                    <div class="options">
+                        ${q.options.map((option, optIndex) => `
+                            <div class="option" onclick="selectOption(${q.id}, ${optIndex})">
+                                <input type="radio" name="q${q.id}" id="q${q.id}opt${optIndex}" value="${optIndex}">
+                                <label for="q${q.id}opt${optIndex}">${option}</label>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                container.appendChild(questionDiv);
+            });
+        }
+
+        // 選択肢を選択する関数（自動送信）
+        function selectOption(questionId, optionIndex) {
+            const questionDiv = document.querySelector(`[onclick="selectOption(${questionId}, ${optionIndex})"]`).parentElement.parentElement;
+            const options = questionDiv.querySelectorAll('.option');
+            
+            // 既存の選択をクリア
+            options.forEach(opt => opt.classList.remove('selected'));
+            
+            // 新しい選択をマーク
+            options[optionIndex].classList.add('selected');
+            
+            // ラジオボタンを選択
+            const radio = document.getElementById(`q${questionId}opt${optionIndex}`);
+            radio.checked = true;
+
+            // 自動的に回答を送信
+            submitAnswer(questionId, optionIndex);
+        }
+
+        // 回答を送信する関数
+        function submitAnswer(questionId, optionIndex) {
+            // 選択された選択肢を取得
+            const selectedOption = questionsData[questionId - 1].options[optionIndex];
+            
+            // 回答データを作成
+            const answer = {
+                questionId: questionId,
+                selectedOption: selectedOption,
+                timestamp: new Date().toISOString()
+            };
+
+            // 既存の結果を取得
+            const existingResults = localStorage.getItem('questionResults');
+            const results = existingResults ? JSON.parse(existingResults) : [];
+            
+            // 新しい回答を追加
+            results.push(answer);
+            
+            // ローカルストレージに保存
+            localStorage.setItem('questionResults', JSON.stringify(results));
+
+            // 少し待ってから完了画面を表示（ユーザーが選択を確認できるように）
+            setTimeout(() => {
+                document.getElementById('questions-container').style.display = 'none';
+                document.getElementById('thank-you').style.display = 'block';
+            }, 500);
+        }
+
+        // 初期表示
+        loadSavedData();
+        renderQuestions();
+    </script>
+</body>
+</html> 
