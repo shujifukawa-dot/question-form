@@ -201,7 +201,11 @@
                         try {
                             const decodedOption = decodeURIComponent(option);
                             // URLとして解釈されないようにチェック
-                            if (!decodedOption.includes('http') && !decodedOption.includes('www')) {
+                            if (!decodedOption.includes('http') && 
+                                !decodedOption.includes('www') && 
+                                !decodedOption.includes('://') &&
+                                !decodedOption.includes('/index.html') &&
+                                !decodedOption.includes('?q=')) {
                                 options.push(decodedOption);
                             } else {
                                 console.warn('無効な選択肢をスキップ:', decodedOption);
