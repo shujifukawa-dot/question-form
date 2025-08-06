@@ -182,11 +182,49 @@
             }
         ];
 
-        // ローカルストレージからデータを読み込み
+        // データを読み込む関数（URLパラメータ優先）
         function loadSavedData() {
-            const savedData = localStorage.getItem('questionData');
-            if (savedData) {
-                questionsData = JSON.parse(savedData);
+            // まずURLパラメータをチェック
+            const urlParams = new URLSearchParams(window.location.search);
+            const questionParam = urlParams.get('q');
+            
+            console.log('URLパラメータ:', window.location.search);
+            console.log('質問パラメータ:', questionParam);
+            
+            if (questionParam) {
+                // URLパラメータから質問データを構築
+                const options = [];
+                for (let i = 0; i < 10; i++) { // 最大10個の選択肢まで
+                    const option = urlParams.get(`o${i}`);
+                    if (option) {
+                        options.push(decodeURIComponent(option));
+                    }
+                }
+                
+                questionsData = [{
+                    id: 1,
+                    question: decodeURIComponent(questionParam),
+                    options: options.length > 0 ? options : ["選択肢1", "選択肢2", "選択肢3"]
+                }];
+                
+                console.log('URLパラメータから読み込んだ質問:', questionsData);
+                
+                // ローカルストレージにも保存
+                localStorage.setItem('questionData', JSON.stringify(questionsData));
+            } else {
+                // URLパラメータがない場合はローカルストレージから読み込み
+                const savedData = localStorage.getItem('questionData');
+                if (savedData) {
+                    questionsData = JSON.parse(savedData);
+                    console.log('ローカルストレージから読み込んだ質問:', questionsData);
+                } else {
+                    console.log('デフォルトの質問を使用');
+                }
+            }
+            
+            // ページタイトルも更新
+            if (questionsData && questionsData[0]) {
+                document.title = questionsData[0].question + ' - 質問フォーム';
             }
         }
 
@@ -260,6 +298,39 @@
                 document.getElementById('thank-you').style.display = 'block';
             }, 500);
         }
+
+        // メッセージリスナーを追加（編集ページからの更新通知を受け取る）
+        window.addEventListener('message', function(event) {
+            if (event.data.type === 'QUESTION_UPDATED') {
+                questionsData = event.data.data;
+                renderQuestions();
+                console.log('質問が更新されました');
+            }
+        });
+
+        // URLパラメータの変更を監視
+        let currentURL = window.location.href;
+        setInterval(function() {
+            if (currentURL !== window.location.href) {
+                currentURL = window.location.href;
+                loadSavedData();
+                renderQuestions();
+                console.log('URLが変更されました');
+            }
+        }, 1000); // 1秒ごとにチェック
+
+        // 定期的にデータをチェック（バックアップ機能）
+        setInterval(function() {
+            const savedData = localStorage.getItem('questionData');
+            if (savedData) {
+                const newData = JSON.parse(savedData);
+                if (JSON.stringify(newData) !== JSON.stringify(questionsData)) {
+                    questionsData = newData;
+                    renderQuestions();
+                    console.log('質問が更新されました（定期チェック）');
+                }
+            }
+        }, 2000); // 2秒ごとにチェック
 
         // 初期表示
         loadSavedData();
