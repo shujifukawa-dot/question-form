@@ -197,7 +197,18 @@
                 for (let i = 0; i < 10; i++) { // 最大10個の選択肢まで
                     const option = urlParams.get(`o${i}`);
                     if (option) {
-                        options.push(decodeURIComponent(option));
+                        // 選択肢の文字列を安全にデコード
+                        try {
+                            const decodedOption = decodeURIComponent(option);
+                            // URLとして解釈されないようにチェック
+                            if (!decodedOption.includes('http') && !decodedOption.includes('www')) {
+                                options.push(decodedOption);
+                            } else {
+                                console.warn('無効な選択肢をスキップ:', decodedOption);
+                            }
+                        } catch (e) {
+                            console.warn('選択肢のデコードに失敗:', option);
+                        }
                     }
                 }
                 
