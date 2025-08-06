@@ -386,7 +386,12 @@
             const safeValue = value.trim();
             
             // 特殊文字やURLっぽい文字列をチェック
-            if (safeValue.includes('http') || safeValue.includes('www') || safeValue.includes('://')) {
+            if (safeValue.includes('http') || 
+                safeValue.includes('www') || 
+                safeValue.includes('://') ||
+                safeValue.includes('/index.html') ||
+                safeValue.includes('?q=') ||
+                safeValue.includes('&o=')) {
                 alert('選択肢にURLや特殊文字は使用できません。');
                 return;
             }
@@ -413,7 +418,12 @@
                 const questionText = document.getElementById(`question${q.id}`).value.trim();
                 
                 // 質問文のバリデーション
-                if (questionText.includes('http') || questionText.includes('www') || questionText.includes('://')) {
+                if (questionText.includes('http') || 
+                    questionText.includes('www') || 
+                    questionText.includes('://') ||
+                    questionText.includes('/index.html') ||
+                    questionText.includes('?q=') ||
+                    questionText.includes('&o=')) {
                     alert('質問文にURLや特殊文字は使用できません。');
                     return;
                 }
@@ -454,8 +464,19 @@
             questionData.options.forEach((option, index) => {
                 // 選択肢が空でない場合のみ追加
                 if (option && option.trim() !== '') {
-                    const encodedOption = encodeURIComponent(option.trim());
-                    params.set(`o${index}`, encodedOption);
+                    // 安全でない文字列をチェック
+                    const safeOption = option.trim();
+                    if (!safeOption.includes('http') && 
+                        !safeOption.includes('www') && 
+                        !safeOption.includes('://') &&
+                        !safeOption.includes('/index.html') &&
+                        !safeOption.includes('?q=') &&
+                        !safeOption.includes('&o=')) {
+                        const encodedOption = encodeURIComponent(safeOption);
+                        params.set(`o${index}`, encodedOption);
+                    } else {
+                        console.warn('安全でない選択肢をスキップ:', safeOption);
+                    }
                 }
             });
             
