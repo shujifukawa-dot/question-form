@@ -382,7 +382,16 @@
 
         // 選択肢を更新
         function updateOption(questionId, optionIndex, value) {
-            questionsData[questionId - 1].options[optionIndex] = value;
+            // 選択肢の値を安全に処理
+            const safeValue = value.trim();
+            
+            // 特殊文字やURLっぽい文字列をチェック
+            if (safeValue.includes('http') || safeValue.includes('www') || safeValue.includes('://')) {
+                alert('選択肢にURLや特殊文字は使用できません。');
+                return;
+            }
+            
+            questionsData[questionId - 1].options[optionIndex] = safeValue;
         }
 
         // 選択肢を削除
@@ -401,7 +410,14 @@
         function saveChanges() {
             // 質問文を更新
             questionsData.forEach(q => {
-                const questionText = document.getElementById(`question${q.id}`).value;
+                const questionText = document.getElementById(`question${q.id}`).value.trim();
+                
+                // 質問文のバリデーション
+                if (questionText.includes('http') || questionText.includes('www') || questionText.includes('://')) {
+                    alert('質問文にURLや特殊文字は使用できません。');
+                    return;
+                }
+                
                 q.question = questionText;
             });
 
@@ -434,10 +450,13 @@
             const encodedQuestion = encodeURIComponent(questionData.question);
             params.set('q', encodedQuestion);
             
-            // 選択肢をエンコード
+            // 選択肢をエンコード（安全な方法）
             questionData.options.forEach((option, index) => {
-                const encodedOption = encodeURIComponent(option);
-                params.set(`o${index}`, encodedOption);
+                // 選択肢が空でない場合のみ追加
+                if (option && option.trim() !== '') {
+                    const encodedOption = encodeURIComponent(option.trim());
+                    params.set(`o${index}`, encodedOption);
+                }
             });
             
             const newURL = window.location.pathname + '?' + params.toString();
