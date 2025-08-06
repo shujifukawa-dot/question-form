@@ -91,6 +91,66 @@
             background: #218838;
         }
 
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-info:hover {
+            background: #138496;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+
+        .btn-dark {
+            background: #343a40;
+            color: white;
+        }
+
+        .btn-dark:hover {
+            background: #23272b;
+        }
+
+        .qr-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .qr-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .qr-close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .qr-close:hover {
+            color: #000;
+        }
+
         .question {
             margin-bottom: 30px;
             padding: 20px;
@@ -251,6 +311,9 @@
                 <button class="btn btn-success" onclick="saveChanges()">変更を保存</button>
                 <button class="btn btn-secondary" onclick="resetToDefault()">デフォルトに戻す</button>
                 <button class="btn btn-primary" onclick="previewQuestion()">プレビュー</button>
+                <button class="btn btn-info" onclick="openAnswerPage()">回答用ページを開く</button>
+                <button class="btn btn-warning" onclick="copyShareURL()">共有用URLをコピー</button>
+                <button class="btn btn-dark" onclick="generateQRCode()">QRコード生成</button>
             </div>
 
             <div id="edit-container">
@@ -263,6 +326,16 @@
                     <!-- プレビューがここに表示されます -->
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- QRコードモーダル -->
+    <div id="qrModal" class="qr-modal">
+        <div class="qr-content">
+            <span class="qr-close" onclick="closeQRModal()">&times;</span>
+            <h3>QRコード</h3>
+            <div id="qrCode"></div>
+            <p>このQRコードをスキャンして質問に回答してください</p>
         </div>
     </div>
 
@@ -335,7 +408,43 @@
             // ローカルストレージに保存
             localStorage.setItem('questionData', JSON.stringify(questionsData));
             
-            alert('変更が保存されました！回答用ページでも反映されます。');
+            // URLパラメータも更新
+            updateURLParameter();
+            
+            // 回答用ページを開いている場合は更新を通知
+            if (window.opener && !window.opener.closed) {
+                window.opener.postMessage({
+                    type: 'QUESTION_UPDATED',
+                    data: questionsData
+                }, '*');
+            }
+            
+            // 共有用URLを自動的にコピー
+            copyShareURL();
+            
+            alert('変更が保存されました！新しい共有用URLがコピーされました。');
+        }
+
+        // URLパラメータを更新する関数
+        function updateURLParameter() {
+            const questionData = questionsData[0];
+            const params = new URLSearchParams();
+            
+            // 質問文をエンコード
+            const encodedQuestion = encodeURIComponent(questionData.question);
+            params.set('q', encodedQuestion);
+            
+            // 選択肢をエンコード
+            questionData.options.forEach((option, index) => {
+                const encodedOption = encodeURIComponent(option);
+                params.set(`o${index}`, encodedOption);
+            });
+            
+            const newURL = window.location.pathname + '?' + params.toString();
+            window.history.replaceState({}, '', newURL);
+            
+            console.log('更新されたURL:', newURL);
+            console.log('エンコードされた質問:', encodedQuestion);
         }
 
         // デフォルトに戻す
@@ -350,6 +459,17 @@
 
             // ローカルストレージから削除
             localStorage.removeItem('questionData');
+            
+            // URLパラメータもクリア
+            window.history.replaceState({}, '', window.location.pathname);
+            
+            // 回答用ページを開いている場合は更新を通知
+            if (window.opener && !window.opener.closed) {
+                window.opener.postMessage({
+                    type: 'QUESTION_UPDATED',
+                    data: questionsData
+                }, '*');
+            }
             
             renderEditForm();
             alert('デフォルトの質問に戻しました！');
@@ -395,9 +515,101 @@
             }
         }
 
+        // 回答用ページを開く関数
+        function openAnswerPage() {
+            // 現在のURLからindex.htmlのURLを生成
+            const currentUrl = window.location.href;
+            const baseUrl = currentUrl.replace('/edit.html', '');
+            
+            // URLパラメータがある場合は追加
+            const urlParams = new URLSearchParams(window.location.search);
+            let answerUrl = baseUrl + '/index.html';
+            
+            if (urlParams.toString()) {
+                answerUrl += '?' + urlParams.toString();
+            }
+            
+            // 新しいタブで回答用ページを開く
+            window.open(answerUrl, '_blank');
+        }
+
+        // 共有用URLをコピーする関数
+        function copyShareURL() {
+            // 現在のURLからindex.htmlのURLを生成
+            const currentUrl = window.location.href;
+            const baseUrl = currentUrl.replace('/edit.html', '');
+            
+            // URLパラメータがある場合は追加
+            const urlParams = new URLSearchParams(window.location.search);
+            let shareUrl = baseUrl + '/index.html';
+            
+            if (urlParams.toString()) {
+                shareUrl += '?' + urlParams.toString();
+            }
+            
+            // タイムスタンプを追加してキャッシュを回避
+            const timestamp = new Date().getTime();
+            shareUrl += (urlParams.toString() ? '&' : '?') + 't=' + timestamp;
+            
+            // クリップボードにコピー
+            navigator.clipboard.writeText(shareUrl).then(function() {
+                alert('共有用URLをクリップボードにコピーしました！\n\n' + shareUrl);
+            }).catch(function(err) {
+                // フォールバック: テキストエリアを使用
+                const textArea = document.createElement('textarea');
+                textArea.value = shareUrl;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('共有用URLをクリップボードにコピーしました！\n\n' + shareUrl);
+            });
+        }
+
+        // QRコード生成関数
+        function generateQRCode() {
+            // 共有用URLを取得
+            const currentUrl = window.location.href;
+            const baseUrl = currentUrl.replace('/edit.html', '');
+            const urlParams = new URLSearchParams(window.location.search);
+            let shareUrl = baseUrl + '/index.html';
+            
+            if (urlParams.toString()) {
+                shareUrl += '?' + urlParams.toString();
+            }
+            
+            // タイムスタンプを追加
+            const timestamp = new Date().getTime();
+            shareUrl += (urlParams.toString() ? '&' : '?') + 't=' + timestamp;
+            
+            // QRコードを生成（Google Charts APIを使用）
+            const qrUrl = `https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(shareUrl)}`;
+            
+            document.getElementById('qrCode').innerHTML = `<img src="${qrUrl}" alt="QR Code" style="max-width: 100%;">`;
+            document.getElementById('qrModal').style.display = 'block';
+        }
+
+        // QRモーダルを閉じる
+        function closeQRModal() {
+            document.getElementById('qrModal').style.display = 'none';
+        }
+
+        // モーダル外クリックで閉じる
+        window.onclick = function(event) {
+            const modal = document.getElementById('qrModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+
         // 初期表示
         loadSavedData();
         renderEditForm();
+        
+        // 初期表示時にもURLパラメータを更新
+        if (questionsData && questionsData[0]) {
+            updateURLParameter();
+        }
     </script>
 </body>
 </html> 
